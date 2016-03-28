@@ -4,7 +4,7 @@ CC_CMD = gcc
 LD_CMD = gcc
 CC = $(GCC_PREFIX)/bin/$(CC_CMD)
 LD = $(GCC_PREFIX)/bin/$(LD_CMD)
-PKG_DIR = ../OPSEC_SDK_6_0.linux30
+PKG_DIR = OPSEC/pkg_rel/
 INSTALL_PREFIX = /usr/local/fw1-loggrabber
 
 EXE_NAME = fw1-loggrabber
@@ -62,5 +62,23 @@ install:
 	@echo "  export LOGGRABBER_TEMP_PATH"
 	@echo
 
+deb:
+	@echo "Building .deb package"
+	@echo "installing to fake root"
+	mkdir fakeroot
+	install -v -d fakeroot/usr/bin
+	install -v -d fakeroot/etc/fw1loggrabber
+	install -v -d fakeroot/usr/share/man/man1
+	install -v -p fw1-loggrabber fakeroot/usr/bin/fw1-loggrabber
+	install -v -p fw1-loggrabber.conf fakeroot/etc/fw1loggrabber/fw1-loggrabber.conf-sample
+	install -v -p lea.conf fakeroot/etc/fw1loggrabber/lea.conf-sample
+	install -v -m 644 -p fw1-loggrabber.1 fakeroot/usr/share/man/man1/fw1-loggrabber.1
+	@echo
+	fpm -s dir -t deb --name fw1loggrabber --version 2.0 -C fakeroot
+	rm -rf fakeroot
+	@echo 
+
 clean:
 	rm -f *.o $(EXE_NAME)
+	rm -rf fakeroot
+	rm -f *.deb
