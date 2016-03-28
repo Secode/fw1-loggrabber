@@ -24,3 +24,9 @@
 *.i*86
 *.x86_64
 *.hex
+
+# packaging
+OPSEC
+fakeroot
+*.deb
+fw1-loggrabber
