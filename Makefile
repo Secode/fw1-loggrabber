@@ -94,7 +94,7 @@ rpm:
 	install -v -p lea.conf fakeroot/etc/fw1-loggrabber/lea.conf-sample
 	install -v -m 644 -p fw1-loggrabber.1 fakeroot/usr/share/man/man1/fw1-loggrabber.1
 	@echo
-	fpm -s dir -d compat-libstdc++-33(x86-32) -d pam(x86-32) -t rpm --name fw1loggrabber --version 2.0 -C fakeroot
+	fpm -s dir -d "compat-libstdc++-33(x86-32)" -d "pam(x86-32)" -t rpm --name fw1loggrabber --version 2.0 -C fakeroot
 	rm -rf fakeroot
 	@echo 
 
