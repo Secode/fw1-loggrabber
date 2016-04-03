@@ -76,7 +76,7 @@ deb:
 	install -v -p lea.conf fakeroot/etc/fw1-loggrabber/lea.conf-sample
 	install -v -m 644 -p fw1-loggrabber.1 fakeroot/usr/share/man/man1/fw1-loggrabber.1
 	@echo
-	fpm -s dir -d libstdc++5:i386 -d libpam0g:i386 -t deb --name fw1loggrabber --version 2.0 -C fakeroot
+	fpm -s dir -d libstdc++6:i386 -d libpam0g:i386 -t deb --name fw1loggrabber --version 2.0 -C fakeroot
 	rm -rf fakeroot
 	@echo 
 
