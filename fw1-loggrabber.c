@@ -3,7 +3,7 @@
 /******************************************************************************/
 /*                                                                            */
 /* Copyright (c) 2003-2005 Torsten Fellhauer, Xiaodong Lin                    */
-/* Copyright (c) 2014 CERTEGO s.r.l.                                          */
+/* Copyright (c) 2014-2016 CERTEGO s.r.l.                                     */
 /* All rights reserved.                                                       */
 /*                                                                            */
 /* Redistribution and use in source and binary forms, with or without         */
@@ -1416,7 +1416,7 @@ int fc_handler (OpsecEnv *pEnv, long eventid, void *raise_data, void *set_data) 
         if (eventid == initent) {
                 /* init event */
                 if (cfgvalues.debug_mode) {
-                        fprintf (stderr, "Info: User defined event has been initilized.\n");
+                        fprintf (stderr, "Info: User defined event has been initialized.\n");
                 }
                 return 0;
         }
@@ -1880,8 +1880,9 @@ usage (char *szProgName)
       fprintf (stderr, "DEBUG: function usage\n");
     }
 
-  fprintf (stderr, "\nFW1-Loggrabber v%s\n", VERSION);
-  fprintf (stderr, "    (C)2005, Torsten Fellhauer, Xiaodong Lin\n\n");
+  fprintf (stderr, "\nFW1-LogGrabber v%s\n", VERSION);
+  fprintf (stderr, "    Copyright (c) 2003-2005 Torsten Fellhauer, Xiaodong Lin\n");
+  fprintf (stderr, "    Copyright (c) 2014-2016 CERTEGO s.r.l.\n\n");
   fprintf (stderr, "Usage:\n");
   fprintf (stderr, " %s [ options ]\n", szProgName);
   fprintf (stderr,
@@ -1907,7 +1908,7 @@ usage (char *szProgName)
   fprintf (stderr,
            "  --debug-level <level>      : Specify Debuglevel (default: 0 - no debugging)\n");
   fprintf (stderr,
-           "  --help                     : Show usage informations\n");
+           "  --help                     : Show usage information\n");
 }
 
 /*
@@ -2162,7 +2163,17 @@ create_fw1_filter_rule (LeaFilterRulebase * prulebase, char filterstring[255])
                    || (strcmp (argumentsinglevalue, "Identity Logging") == 0)
                    || (strcmp (argumentsinglevalue, "New Anti Virus") == 0)
                    || (strcmp (argumentsinglevalue, "FDE") == 0)
-                   || (strcmp (argumentsinglevalue, "Anti Malware") == 0)))
+                   || (strcmp (argumentsinglevalue, "Anti Malware") == 0)
+                   || (strcmp (argumentsinglevalue, "Application Control") == 0)
+                   || (strcmp (argumentsinglevalue, "Application Control(+)URL Filtering") == 0)
+                   || (strcmp (argumentsinglevalue, "Connectra") == 0)
+                   || (strcmp (argumentsinglevalue, "ESOD") == 0)
+                   || (strcmp (argumentsinglevalue, "Linux OS") == 0)
+                   || (strcmp (argumentsinglevalue, "Policy Server") == 0)
+                   || (strcmp (argumentsinglevalue, "Security Gateway/Management") == 0)
+                   || (strcmp (argumentsinglevalue, "Syslog") == 0)
+                   || (strcmp (argumentsinglevalue, "Threat Emulation") == 0)
+                   || (strcmp (argumentsinglevalue, "Threat Extraction") == 0)))
                 {
                   fprintf (stderr, "ERROR: invalid value for product: '%s'\n",
                            argumentsinglevalue);
@@ -4816,7 +4827,7 @@ exit_loggrabber (int errorcode)
 }
 
 /*
- * initilization function to define open, submit and close handler
+ * initialization function to define open, submit and close handler
  */
 void
 logging_init_env (int logging)
@@ -4885,7 +4896,7 @@ submit_syslog (char *message)
     {
       fprintf (stderr, "DEBUG: Submit message to Syslog.\n");
     }
-  syslog (LOG_NOTICE, message);
+  syslog (LOG_NOTICE, "%s", message);
   return;
 }
 
@@ -4973,7 +4984,7 @@ open_logfile ()
 
   if (cfgvalues.debug_mode)
     {
-      fprintf (stderr, "DEBUG: Initilize log file and open log file.\n");
+      fprintf (stderr, "DEBUG: Initialize log file and open log file.\n");
     }
 
   //create current output filename
