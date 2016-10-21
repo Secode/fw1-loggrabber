@@ -94,7 +94,7 @@ deb:
 	install -v -p fw1-loggrabber.conf fakeroot/etc/fw1-loggrabber/fw1-loggrabber.conf-sample
 	install -v -p lea.conf fakeroot/etc/fw1-loggrabber/lea.conf-sample
 	@echo
-	fpm -s dir -d zlib1g:i386 -d libpam0g:i386 -t deb --name fw1loggrabber --version ${VERSION} --after-install postscript.sh -C fakeroot
+	fpm -s dir -d zlib1g:i386 -d libpam0g:i386 -t deb --name fw1loggrabber --version ${VERSION} --iteration ${BUILD_NUMBER} --after-install postscript.sh -C fakeroot
 	rm -rf fakeroot
 	@echo 
 
@@ -115,7 +115,7 @@ rpm:
 	install -v -p fw1-loggrabber.conf fakeroot/etc/fw1-loggrabber/fw1-loggrabber.conf-sample
 	install -v -p lea.conf fakeroot/etc/fw1-loggrabber/lea.conf-sample
 	@echo
-	fpm -s dir -d "compat-libstdc++-33(x86-32)" -d "pam(x86-32)" -t rpm --name fw1loggrabber --version ${VERSION} --after-install postscript.sh -C fakeroot
+	fpm -s dir -d "compat-libstdc++-33(x86-32)" -d "pam(x86-32)" -t rpm --name fw1loggrabber --version ${VERSION} --iteration ${BUILD_NUMBER} --after-install postscript.sh -C fakeroot
 	rm -rf fakeroot
 	@echo 
 
