@@ -11,8 +11,10 @@ OBJ_FILES = thread.o queue.o fw1-loggrabber.o
 
 CFLAGS += -m32 -g -Wall -fpic -DLINUX -DUNIXOS=1 -DDEBUG
 SYSTEM_LIBS = -lpthread -lresolv -ldl -lnsl -lelf -lstdc++ -lz
+VERSION = 2.1
 
 OPSEC_PKG_DIR = OPSEC_SDK/pkg_rel
+OPSEC_BIN_DIR = OPSEC/linux30
 OPSEC_INC_DIR = $(OPSEC_PKG_DIR)/include
 OPSEC_LIB_DIR = $(OPSEC_PKG_DIR)/lib/release.dynamic
 OPSEC_LIBS = \
@@ -79,16 +81,20 @@ deb:
 	@echo "installing to fake root"
 	mkdir fakeroot
 	install -v -d fakeroot/usr/bin
+	install -v -d fakeroot/usr/lib32
 	install -v -d fakeroot/etc/fw1-loggrabber
 	install -v -d fakeroot/usr/share/man/man1
-	install -v -m 755 -p OPSEC/linux30/opsec_pull_cert fakeroot/usr/bin/opsec_pull_cert
-	install -v -m 755 -p OPSEC/linux30/opsec_putkey fakeroot/usr/bin/opsec_putkey
+	install -v -m 755 -p ${OPSEC_BIN_DIR}/opsec_pull_cert fakeroot/usr/bin/opsec_pull_cert
+	install -v -m 755 -p ${OPSEC_BIN_DIR}/opsec_putkey fakeroot/usr/bin/opsec_putkey
+	for f in ${OPSEC_PKG_DIR}/lib/release.dynamic/*.so; do \
+		install -v -m 644 -t fakeroot/usr/lib32/ $$f; \
+	done
+	# install -v -m 644 -p ${OPSEC_PKG_DIR}/lib/release.dynamic/libopsec.so fakeroot/usr/lib32/libopsec.so
 	install -v -m 755 -p fw1-loggrabber fakeroot/usr/bin/fw1-loggrabber
 	install -v -p fw1-loggrabber.conf fakeroot/etc/fw1-loggrabber/fw1-loggrabber.conf-sample
 	install -v -p lea.conf fakeroot/etc/fw1-loggrabber/lea.conf-sample
-	install -v -m 644 -p fw1-loggrabber.1 fakeroot/usr/share/man/man1/fw1-loggrabber.1
 	@echo
-	fpm -s dir -d libstdc++6:i386 -d libpam0g:i386 -t deb --name fw1loggrabber --version 2.0 -C fakeroot
+	fpm -s dir -d zlib1g:i386 -d libpam0g:i386 -t deb --name fw1loggrabber --version ${VERSION} -C fakeroot
 	rm -rf fakeroot
 	@echo 
 
@@ -97,16 +103,19 @@ rpm:
 	@echo "installing to fake root"
 	mkdir fakeroot
 	install -v -d fakeroot/usr/bin
+	install -v -d fakeroot/usr/lib
 	install -v -d fakeroot/etc/fw1-loggrabber
 	install -v -d fakeroot/usr/share/man/man1
-	install -v -m 755 -p OPSEC/linux30/opsec_pull_cert fakeroot/usr/bin/opsec_pull_cert
-	install -v -m 755 -p OPSEC/linux30/opsec_putkey fakeroot/usr/bin/opsec_putkey
+	install -v -m 755 -p ${OPSEC_BIN_DIR}/opsec_pull_cert fakeroot/usr/bin/opsec_pull_cert
+	install -v -m 755 -p ${OPSEC_BIN_DIR}/opsec_putkey fakeroot/usr/bin/opsec_putkey
+	for f in ${OPSEC_PKG_DIR}/lib/release.dynamic/*.so; do \
+		install -v -m 644 -t fakeroot/usr/lib/ $$f; \
+	done
 	install -v -m 755 -p fw1-loggrabber fakeroot/usr/bin/fw1-loggrabber
 	install -v -p fw1-loggrabber.conf fakeroot/etc/fw1-loggrabber/fw1-loggrabber.conf-sample
 	install -v -p lea.conf fakeroot/etc/fw1-loggrabber/lea.conf-sample
-	install -v -m 644 -p fw1-loggrabber.1 fakeroot/usr/share/man/man1/fw1-loggrabber.1
 	@echo
-	fpm -s dir -d "compat-libstdc++-33(x86-32)" -d "pam(x86-32)" -t rpm --name fw1loggrabber --version 2.0 -C fakeroot
+	fpm -s dir -d "compat-libstdc++-33(x86-32)" -d "pam(x86-32)" -t rpm --name fw1loggrabber --version ${VERSION} -C fakeroot
 	rm -rf fakeroot
 	@echo 
 
@@ -114,3 +123,4 @@ clean:
 	rm -f *.o $(EXE_NAME)
 	rm -rf fakeroot
 	rm -f *.deb
+	rm -f *.rpm
