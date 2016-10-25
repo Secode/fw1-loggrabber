@@ -81,15 +81,14 @@ deb:
 	@echo "installing to fake root"
 	mkdir fakeroot
 	install -v -d fakeroot/usr/bin
-	install -v -d fakeroot/usr/lib32
+	install -v -d fakeroot/usr/lib
 	install -v -d fakeroot/etc/fw1-loggrabber
 	install -v -d fakeroot/usr/share/man/man1
 	install -v -m 755 -p ${OPSEC_BIN_DIR}/opsec_pull_cert fakeroot/usr/bin/opsec_pull_cert
 	install -v -m 755 -p ${OPSEC_BIN_DIR}/opsec_putkey fakeroot/usr/bin/opsec_putkey
 	for f in ${OPSEC_PKG_DIR}/lib/release.dynamic/*.so; do \
-		install -v -m 644 -t fakeroot/usr/lib32/ $$f; \
+		install -v -m 644 -t fakeroot/usr/lib/ $$f; \
 	done
-	# install -v -m 644 -p ${OPSEC_PKG_DIR}/lib/release.dynamic/libopsec.so fakeroot/usr/lib32/libopsec.so
 	install -v -m 755 -p fw1-loggrabber fakeroot/usr/bin/fw1-loggrabber
 	install -v -p fw1-loggrabber.conf fakeroot/etc/fw1-loggrabber/fw1-loggrabber.conf-sample
 	install -v -p lea.conf fakeroot/etc/fw1-loggrabber/lea.conf-sample
