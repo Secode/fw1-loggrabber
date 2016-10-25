@@ -124,6 +124,28 @@ main (int argc, char *argv[])
         {
           audit_log = 0;
         }
+      else if (strcmp (argv[i], "--SEMI") == 0)
+        {
+          semi_unified = 1;
+        }
+      else if (strcmp (argv[i], "--loc-id") == 0)
+        {
+          i++;
+          if (argv[i] == NULL)
+            {
+              fprintf (stderr, "ERROR: Invalid argument: %s\n", argv[i - 1]);
+              usage (argv[0]);
+              exit_loggrabber (1);
+            }
+          if (argv[i][0] == '-')
+            {
+              fprintf (stderr, "ERROR: Value expected for argument %s\n",
+                       argv[i - 1]);
+              usage (argv[0]);
+              exit_loggrabber (1);
+            }
+          loc_id = atoi (argv[i]);
+       }
       else if ((strcmp (argv[i], "-f") == 0)
                || (strcmp (argv[i], "--logfile") == 0))
         {
@@ -316,6 +338,7 @@ main (int argc, char *argv[])
         }
     }
 
+  /*
   if (cfgvalues.online_mode && (!(cfgvalues.audit_mode))
       && (strcmp (cfgvalues.fw1_logfile, "fw.log") != 0))
     {
@@ -323,6 +346,7 @@ main (int argc, char *argv[])
                "ERROR: -f <FILENAME> option is not available in online mode. For use with Audit-Logfile, use --auditlog\n");
       exit_loggrabber (1);
     }
+  */
 
   if (cfgvalues.online_mode && cfgvalues.showfiles_mode)
     {
@@ -712,21 +736,95 @@ read_fw1_logfile (char **LogfileName)
         {
           /*
            * create a suspended session, i.e. not log data will be sent to client
+           * and check which mode we are in, semi_unified is 1, unified is 0
            */
-          if (cfgvalues.online_mode)
+
+          /*
+           * I choose this if over macro fiddeling.
+           */
+          if (semi_unified != 0)
             {
-              pSession =
-                lea_new_suspended_session (pClient, pServer, LEA_ONLINE,
-                                           LEA_UNIFIED_SINGLE, *LogfileName,
-                                           LEA_AT_END);
+              if (cfgvalues.online_mode)
+                {
+                 /*
+                  * Our test, online with loc, semi unification, LEA_SEMI_FILENAME
+                  * as LEA_SEMI_SINGLE: "..should be used for collected log files."
+                  */
+                  if (loc_id != -1)
+                    {
+                      pSession =
+                        lea_new_suspended_session (pClient, pServer, LEA_ONLINE,
+                                                   LEA_SEMI_FILENAME, *LogfileName,
+                                                   LEA_AT_POS, loc_id);
+                    }
+                  else
+                    {
+                      pSession =
+                        lea_new_suspended_session (pClient, pServer, LEA_ONLINE,
+                                                   LEA_SEMI_FILENAME, *LogfileName,
+                                                   LEA_AT_END);
+                    }
+                }
+              else
+                {
+                  if (loc_id != -1)
+                    {
+                      pSession =
+                        lea_new_suspended_session (pClient, pServer, LEA_OFFLINE,
+                                                   LEA_SEMI_SINGLE, *LogfileName,
+                                                   LEA_AT_POS, loc_id);
+                    }
+                  else
+                    {
+                      pSession =
+                        lea_new_suspended_session (pClient, pServer, LEA_OFFLINE,
+                                                   LEA_SEMI_SINGLE, *LogfileName,
+                                                   LEA_AT_START);
+                    }
+                }
             }
           else
-            {
-              pSession =
-                lea_new_suspended_session (pClient, pServer, LEA_OFFLINE,
-                                           LEA_UNIFIED_SINGLE, *LogfileName,
-                                           LEA_AT_START);
-            }
+           {
+              if (cfgvalues.online_mode)
+                {
+                 /*
+                  * Our test, online with loc, semi unification, LEA_SEMI_FILENAME
+                  * as LEA_SEMI_SINGLE: "..should be used for collected log files."
+                  */
+                  if (loc_id != -1)
+                    {
+                      pSession =
+                        lea_new_suspended_session (pClient, pServer, LEA_ONLINE,
+                                                   LEA_UNIFIED_FILENAME, *LogfileName,
+                                                   LEA_AT_POS, loc_id);
+                    }
+                  else
+                    {
+                      pSession =
+                        lea_new_suspended_session (pClient, pServer, LEA_ONLINE,
+                                                   LEA_UNIFIED_FILENAME, *LogfileName,
+                                                   LEA_AT_END);
+                    }
+                }
+              else
+                {
+                  if (loc_id != -1)
+                    {
+                      pSession =
+                        lea_new_suspended_session (pClient, pServer, LEA_OFFLINE,
+                                                   LEA_UNIFIED_SINGLE, *LogfileName,
+                                                   LEA_AT_POS, loc_id);
+                    }
+                  else
+                    {
+                      pSession =
+                        lea_new_suspended_session (pClient, pServer, LEA_OFFLINE,
+                                                   LEA_UNIFIED_SINGLE, *LogfileName,
+                                                   LEA_AT_START);
+                    }
+                }
+           }
+
           if (!pSession)
             {
               fprintf (stderr, "ERROR: failed to create session (%s)\n",
@@ -941,9 +1039,9 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
   unsigned long ul;
   unsigned short us;
   char tmpdata[21];
+  char timestring[21];
   char *tmpstr1;
   char *tmpstr2;
-  short first = TRUE;
   char *message = NULL;
   char *mymsg = NULL;
   int number_fields;
@@ -1052,6 +1150,12 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
 
       *field_headers[i] = string_duplicate (szAttrib);
 
+      if (strcmp (szAttrib, "time") == 0)
+        {
+          sprintf (timestring, "%d",
+                   pRec->fields[i].lea_value.ul_value);
+        }
+
       if (tmpdata[0])
         {
           *field_values[i] = string_duplicate (tmpdata);
@@ -1063,6 +1167,16 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
                               (pSession, pRec->fields[i]));
         }
     }
+
+  /*
+   * always print "loc" and "unixtime" first on each row
+   */
+  sprintf (stringnumber, "loc=%d%cunixtime=%s",
+           lea_get_record_pos (pSession) - 1, cfgvalues.record_separator,
+           timestring);
+
+  messagecap =
+    string_cat (&message, stringnumber, messagecap);
 
   /*
    * print logentry to stdout
@@ -1077,16 +1191,9 @@ read_fw1_logfile_record (OpsecSession * pSession, lea_record * pRec,
           tmpstr2 =
             string_escape (*field_values[i],
                            cfgvalues.record_separator);
-          if (first)
-            {
-              sprintf (stringnumber, "%s=%s", tmpstr1, tmpstr2);
-              first = FALSE;
-            }
-          else
-            {
-              sprintf (stringnumber, "%c%s=%s",
-                       cfgvalues.record_separator, tmpstr1, tmpstr2);
-            }
+
+          sprintf (stringnumber, "%c%s=%s",
+                   cfgvalues.record_separator, tmpstr1, tmpstr2);
 
           messagecap =
             string_cat (&message, stringnumber, messagecap);
@@ -2032,7 +2139,7 @@ stringlist_search (stringlist ** lst, char *searchstring, char **result)
  * function create_fw1_filter_rule
  */
 LeaFilterRulebase *
-create_fw1_filter_rule (LeaFilterRulebase * prulebase, char filterstring[255])
+create_fw1_filter_rule (LeaFilterRulebase * prulebase, char filterstring[16384])
 {
   LeaFilterRule *prule;
   LeaFilterPredicate *ppred;
@@ -2048,6 +2155,7 @@ create_fw1_filter_rule (LeaFilterRulebase * prulebase, char filterstring[255])
   unsigned long templong;
   lea_value_ex_t **val_arr;
   lea_value_ex_t *lea_value;
+  opsec_uuid *uuid_string;
   char *argumentsinglevalue;
   int argumentcount;
   int negation;
@@ -2153,31 +2261,87 @@ create_fw1_filter_rule (LeaFilterRulebase * prulebase, char filterstring[255])
                 }
 
               /*
-               * check validity of argument value
+               * create extended opsec value
                */
-              if (!
-                  ((strcmp (argumentsinglevalue, "VPN-1 & FireWall-1") == 0)
-                   || (strcmp (argumentsinglevalue, "SmartDefense") == 0)
-                   || (strcmp (argumentsinglevalue, "URL Filtering") == 0)
-                   || (strcmp (argumentsinglevalue, "Identity Awareness") == 0)
-                   || (strcmp (argumentsinglevalue, "Identity Logging") == 0)
-                   || (strcmp (argumentsinglevalue, "New Anti Virus") == 0)
-                   || (strcmp (argumentsinglevalue, "FDE") == 0)
-                   || (strcmp (argumentsinglevalue, "Anti Malware") == 0)
-                   || (strcmp (argumentsinglevalue, "Application Control") == 0)
-                   || (strcmp (argumentsinglevalue, "Application Control(+)URL Filtering") == 0)
-                   || (strcmp (argumentsinglevalue, "Connectra") == 0)
-                   || (strcmp (argumentsinglevalue, "ESOD") == 0)
-                   || (strcmp (argumentsinglevalue, "Linux OS") == 0)
-                   || (strcmp (argumentsinglevalue, "Policy Server") == 0)
-                   || (strcmp (argumentsinglevalue, "Security Gateway/Management") == 0)
-                   || (strcmp (argumentsinglevalue, "Syslog") == 0)
-                   || (strcmp (argumentsinglevalue, "Threat Emulation") == 0)
-                   || (strcmp (argumentsinglevalue, "Threat Extraction") == 0)))
+              val_arr[argumentcount - 1] = lea_value_ex_create ();
+              if (lea_value_ex_set
+                  (val_arr[argumentcount - 1], LEA_VT_STRING,
+                   argumentsinglevalue) == OPSEC_SESSION_ERR)
                 {
-                  fprintf (stderr, "ERROR: invalid value for product: '%s'\n",
-                           argumentsinglevalue);
+                  fprintf (stderr, "ERROR: failed to set rule value (%s)\n",
+                           opsec_errno_str (opsec_errno));
+                  lea_value_ex_destroy (val_arr[argumentcount - 1]);
+                  lea_filter_rule_destroy (prule);
                   return NULL;
+                }
+            }
+
+          /*
+           * create filter predicate
+           */
+          if ((ppred =
+               lea_filter_predicate_create ("product", -1, negation,
+                                            LEA_FILTER_PRED_BELONGS_TO,
+                                            argumentcount, val_arr)) == NULL)
+            {
+              fprintf (stderr, "ERROR: failed to create predicate\n");
+              lea_value_ex_destroy (val_arr[argumentcount - 1]);
+              lea_filter_rule_destroy (prule);
+              return NULL;
+            }
+
+          lea_value_ex_destroy (val_arr[argumentcount - 1]);
+
+          /*
+           * add current predicate to current rule
+           */
+          if (lea_filter_rule_add_predicate (prule, ppred) == LEA_FILTER_ERR)
+            {
+              fprintf (stderr, "ERROR: failed to add predicate to rule\n");
+              lea_filter_rule_destroy (prule);
+              lea_filter_predicate_destroy (ppred);
+              return NULL;
+            }
+
+          lea_filter_predicate_destroy (ppred);
+        }
+
+      /*
+       * process arguments of type "Attack Info", sig-ish
+       */
+      else if (strcmp (argumentname, "attack info") == 0)
+        {
+          argumentcount = 0;
+          /*
+           * get argument values separated by ","
+           */
+          while (argumentvalue)
+            {
+              argumentsinglevalue =
+                string_trim (string_get_token (&argumentvalue, ','), ' ');
+              argumentcount++;
+              if (val_arr)
+                {
+                  val_arr =
+                    (lea_value_ex_t **) realloc (val_arr,
+                                                 argumentcount *
+                                                 sizeof (lea_value_ex_t *));
+                  if (val_arr == NULL)
+                    {
+                      fprintf (stderr, "ERROR: Out of memory\n");
+                      exit_loggrabber (1);
+                    }
+                }
+              else
+                {
+                  val_arr =
+                    (lea_value_ex_t **) malloc (argumentcount *
+                                                sizeof (lea_value_ex_t *));
+                  if (val_arr == NULL)
+                    {
+                      fprintf (stderr, "ERROR: Out of memory\n");
+                      exit_loggrabber (1);
+                    }
                 }
 
               /*
@@ -2200,7 +2364,194 @@ create_fw1_filter_rule (LeaFilterRulebase * prulebase, char filterstring[255])
            * create filter predicate
            */
           if ((ppred =
-               lea_filter_predicate_create ("product", -1, negation,
+               lea_filter_predicate_create ("Attack Info", -1, negation,
+                                            LEA_FILTER_PRED_BELONGS_TO,
+                                            argumentcount, val_arr)) == NULL)
+            {
+              fprintf (stderr, "ERROR: failed to create predicate\n");
+              lea_value_ex_destroy (val_arr[argumentcount - 1]);
+              lea_filter_rule_destroy (prule);
+              return NULL;
+            }
+
+          lea_value_ex_destroy (val_arr[argumentcount - 1]);
+
+          /*
+           * add current predicate to current rule
+           */
+          if (lea_filter_rule_add_predicate (prule, ppred) == LEA_FILTER_ERR)
+            {
+              fprintf (stderr, "ERROR: failed to add predicate to rule\n");
+              lea_filter_rule_destroy (prule);
+              lea_filter_predicate_destroy (ppred);
+              return NULL;
+            }
+
+          lea_filter_predicate_destroy (ppred);
+        }
+
+      /*
+       * process arguments of type "startepoch"
+       */
+      else if (strcmp (argumentname, "startepoch") == 0)
+        {
+          argumentsinglevalue = string_trim (argumentvalue, ' ');
+
+          if (strlen (argumentsinglevalue) != 10)
+            {
+              fprintf (stderr,
+                       "ERROR: syntax error in rule value of argument rule: '%s'.\n"
+                       "       Required syntax: 'startepoch=1234567890'\n",
+                       argumentsinglevalue);
+              return NULL;
+            }
+
+          templong = (unsigned long) strtol (argumentsinglevalue, NULL, 10);
+          if (templong == -1)
+            {
+              fprintf (stderr,
+                       "ERROR: illegal epoch format in argumentvalue\n");
+              return NULL;
+            }
+
+          /*
+           * create extended opsec value
+           */
+          lea_value = lea_value_ex_create ();
+          if (lea_value_ex_set (lea_value, LEA_VT_TIME, templong) ==
+              OPSEC_SESSION_ERR)
+            {
+              fprintf (stderr, "ERROR: failed to set starttime value (%s)\n",
+                       opsec_errno_str (opsec_errno));
+              lea_value_ex_destroy (lea_value);
+              lea_filter_rule_destroy (prule);
+              return NULL;
+            }
+
+          /*
+           * create filter predicate
+           */
+          if ((ppred =
+               lea_filter_predicate_create ("time", -1, negation,
+                                            LEA_FILTER_PRED_GREATER_EQUAL,
+                                            lea_value)) == NULL)
+            {
+              fprintf (stderr, "ERROR: failed to create predicate\n");
+              lea_filter_rule_destroy (prule);
+              return NULL;
+            }
+
+          /*
+           * add current predicate to current rule
+           */
+          if (lea_filter_rule_add_predicate (prule, ppred) == LEA_FILTER_ERR)
+            {
+              fprintf (stderr, "ERROR: failed to add predicate to rule\n");
+              lea_filter_rule_destroy (prule);
+              lea_filter_predicate_destroy (ppred);
+              return NULL;
+            }
+
+          lea_filter_predicate_destroy (ppred);
+        }
+
+      /*
+       * process arguments of type "log_sys_message"
+       */
+      else if (strcmp (argumentname, "log_sys_message") == 0)
+        {
+          argumentsinglevalue = string_trim (argumentvalue, ' ');
+
+          /*
+           * create filter predicate
+           */
+          if ((ppred =
+               lea_filter_predicate_create ("log_sys_message", -1, negation,
+                                            LEA_FILTER_PRED_CONTAINS_SUBSTRING,
+                                            argumentsinglevalue)) == NULL)
+            {
+              fprintf (stderr, "ERROR: failed to create predicate\n");
+              lea_filter_rule_destroy (prule);
+              return NULL;
+            }
+
+          /*
+           * add current predicate to current rule
+           */
+          if (lea_filter_rule_add_predicate (prule, ppred) == LEA_FILTER_ERR)
+            {
+              fprintf (stderr, "ERROR: failed to add predicate to rule\n");
+              lea_filter_rule_destroy (prule);
+              lea_filter_predicate_destroy (ppred);
+              return NULL;
+            }
+
+          lea_filter_predicate_destroy (ppred);
+        }
+
+      /*
+       * process arguments of type "uuid"
+       */
+      else if (strcmp (argumentname, "uuid") == 0)
+        {
+          argumentcount = 0;
+          /*
+           * get argument values separated by "|"
+           */
+          while (argumentvalue)
+            {
+              argumentsinglevalue =
+                string_trim (string_get_token (&argumentvalue, '|'), ' ');
+              argumentcount++;
+              if (val_arr)
+                {
+                  val_arr =
+                    (lea_value_ex_t **) realloc (val_arr,
+                                                 argumentcount *
+                                                 sizeof (lea_value_ex_t *));
+                  if (val_arr == NULL)
+                    {
+                      fprintf (stderr, "ERROR: Out of memory\n");
+                      exit_loggrabber (1);
+                    }
+                }
+              else
+                {
+                  val_arr =
+                    (lea_value_ex_t **) malloc (argumentcount *
+                                                sizeof (lea_value_ex_t *));
+                  if (val_arr == NULL)
+                    {
+                      fprintf (stderr, "ERROR: Out of memory\n");
+                      exit_loggrabber (1);
+                    }
+                }
+
+              /*
+               * create extended opsec value
+               */
+              val_arr[argumentcount - 1] = lea_value_ex_create ();
+              uuid_string = opsec_uuid_create();
+              opsec_uuid_from_string(uuid_string, argumentsinglevalue);
+              if (lea_value_ex_set
+                  (val_arr[argumentcount - 1], LEA_VT_UUID,
+                   uuid_string) == OPSEC_SESSION_ERR)
+                {
+                  fprintf (stderr, "ERROR: failed to set rule value (%s)\n",
+                           opsec_errno_str (opsec_errno));
+                  lea_value_ex_destroy (val_arr[argumentcount - 1]);
+                  opsec_uuid_destroy(uuid_string);
+                  lea_filter_rule_destroy (prule);
+                  return NULL;
+                }
+            }
+            opsec_uuid_destroy(uuid_string);
+
+          /*
+           * create filter predicate
+           */
+          if ((ppred =
+               lea_filter_predicate_create ("uuid", -1, negation,
                                             LEA_FILTER_PRED_BELONGS_TO,
                                             argumentcount, val_arr)) == NULL)
             {

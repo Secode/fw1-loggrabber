@@ -322,6 +322,8 @@ void (*close_log) ();
 int debug_mode = -1;
 int show_files = -1;
 int online_mode = -1;
+int loc_id = -1;
+int semi_unified = 0;
 int resolve_mode = -1;
 char *LogfileName = NULL;
 int fw1_2000 = -1;
